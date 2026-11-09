@@ -235,6 +235,7 @@ mod persist;
 mod perspective;
 mod pick_entity;
 mod pickups;
+mod qol;
 mod piglins;
 mod piston_push;
 mod player_equip;
@@ -1412,7 +1413,14 @@ impl LevelAccess for GameLevel<'_> {
         self.world.day_time
     }
     fn game_rules(&self) -> horizon_world::level::GameRules {
-        self.rules
+        let mut rules = self.rules;
+        if self.raining {
+            // Starling: rain makes crops and saplings grow faster.
+            rules.random_tick_speed = rules
+                .random_tick_speed
+                .saturating_mul(horizon_items::qol::RAIN_RANDOM_TICK_MULTIPLIER.max(1));
+        }
+        rules
     }
     fn difficulty(&self) -> i32 {
         self.difficulty
@@ -5541,7 +5549,7 @@ impl Game<'_> {
                     .is_some_and(|h| h.enchantment_level("minecraft:silk_touch") > 0);
                 for d in drops {
                     if &*d.item != "minecraft:air" {
-                        self.pop_resource(pos, d);
+                        self.qol_collect_drop(pos, d);
                     }
                 }
                 // BeehiveBlock.playerDestroy: silk touch keeps the bees in, so
@@ -6565,7 +6573,7 @@ impl Game<'_> {
         if self.creative {
             if self.destroy_delay == 0 {
                 self.break_block(hit.pos)?;
-                self.destroy_delay = 5;
+                self.destroy_delay = horizon_items::qol::BREAK_DELAY_TICKS;
             }
             return Ok(());
         }
@@ -6614,6 +6622,8 @@ impl Game<'_> {
         {
             speed *= self.submerged_mining_speed();
         }
+        // Starling: fast break.
+        speed *= horizon_items::qol::BREAK_SPEED_MULTIPLIER;
         let harvest = !facts.requires_tool || self.items().correct_for_drops(held, &facts.name);
         let progress = if facts.hardness == 0.0 {
             1.0
@@ -6638,8 +6648,11 @@ impl Game<'_> {
         if m.progress >= 1.0 && (self.lan_acting.is_none() || m.ticks == 1) {
             let pos = m.pos;
             self.mining = None;
+            // Starling: the ore vein or tree this block belongs to goes with it.
+            let chain = self.qol_chain_start(pos);
             self.break_block(pos)?;
-            self.destroy_delay = 5;
+            self.qol_chain_finish(chain)?;
+            self.destroy_delay = horizon_items::qol::BREAK_DELAY_TICKS;
         }
         Ok(())
     }
@@ -7393,7 +7406,7 @@ impl Game<'_> {
             && self.sleeping.is_none()
         {
             self.use_with_hand()?;
-            self.use_delay = 4;
+            self.use_delay = horizon_items::qol::PLACE_DELAY_TICKS;
         }
         Ok(())
     }

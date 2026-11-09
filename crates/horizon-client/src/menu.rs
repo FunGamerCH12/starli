@@ -259,7 +259,7 @@ const MAIN: usize = 1;
 const GRID: usize = 2;
 const RESULT: usize = 3;
 /// `Container.getMaxStackSize`.
-const CONTAINER_MAX: u32 = 99;
+const CONTAINER_MAX: u32 = horizon_items::qol::MAX_STACK;
 const OFFHAND: usize = 40;
 
 pub struct Menu {

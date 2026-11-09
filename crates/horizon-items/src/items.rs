@@ -755,7 +755,9 @@ impl Items {
                     fire_resistant: c["minecraft:damage_resistant"]["types"].as_str()
                         == Some("#minecraft:is_fire"),
                     id: id.clone(),
-                    max_stack: c["minecraft:max_stack_size"].as_u64().unwrap_or(64) as u32,
+                    max_stack: crate::qol::stack_cap(
+                        c["minecraft:max_stack_size"].as_u64().unwrap_or(64) as u32,
+                    ),
                     max_damage: c["minecraft:max_damage"].as_u64().unwrap_or(0) as u32,
                     block: block_for_item.get(name.as_str()).copied(),
                     tool,

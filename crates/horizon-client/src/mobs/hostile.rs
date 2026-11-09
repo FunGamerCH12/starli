@@ -310,6 +310,12 @@ pub fn creeper_tick(m: &mut Mob, events: &mut Vec<MobEvent>) {
     if !m.alive() {
         return;
     }
+    if horizon_items::qol::CREEPERS_DONT_EXPLODE {
+        // Starling: the fuse never lights, so the creeper never blows up.
+        m.swell = 0;
+        m.extra.flag = false;
+        return;
+    }
     if m.extra.flag {
         // Ignited by flint and steel.
         m.extra.counter = 1;

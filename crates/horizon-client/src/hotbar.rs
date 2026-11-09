@@ -45,7 +45,7 @@ fn stack(tag: &Tag, known: &dyn Fn(&str) -> bool) -> Option<ItemStack> {
         _ => 1,
     };
     Some(ItemStack {
-        count: if (1..=99).contains(&count) {
+        count: if (1..=horizon_items::qol::MAX_STACK as i32).contains(&count) {
             count as u32
         } else {
             1

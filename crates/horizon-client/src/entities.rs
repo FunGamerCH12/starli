@@ -508,7 +508,9 @@ pub fn merge_with_neighbours(
             (j, i)
         };
         // ItemEntity.merge(toStack, fromStack, 64).
-        let room = max_stack(&items[to].stack).min(64) - items[to].stack.count;
+        let room = max_stack(&items[to].stack)
+            .min(horizon_items::qol::MAX_STACK)
+            .saturating_sub(items[to].stack.count);
         let moved = room.min(items[from].stack.count);
         items[to].stack.count += moved;
         items[from].stack.count -= moved;

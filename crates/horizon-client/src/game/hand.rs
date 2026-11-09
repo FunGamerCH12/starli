@@ -240,7 +240,7 @@ impl Game<'_> {
                     break;
                 }
                 used = self.use_with_hand();
-                self.use_delay = 4;
+                self.use_delay = horizon_items::qol::PLACE_DELAY_TICKS;
                 if used.is_err() {
                     break;
                 }
