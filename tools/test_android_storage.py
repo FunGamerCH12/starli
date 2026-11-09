@@ -174,7 +174,8 @@ extern "system" fn Java_dev_horizon_storageprobe_Probe_nativeCheck(
         subprocess.run([str(v) for v in command], check=True, cwd=ROOT, **kwargs)
     run(['cargo', 'build', '--manifest-path', out / 'Cargo.toml', '--target', 'aarch64-linux-android'], env=env)
     run([jdk / 'bin/javac.exe', '-source', '8', '-target', '8', '-classpath', sdk / 'platforms/android-35/android.jar',
-         '-d', out / 'classes', out / 'Probe.java', ROOT / 'packaging/android/java/dev/horizon/android/HorizonDocumentsProvider.java'])
+         '-d', out / 'classes', out / 'Probe.java', ROOT / 'packaging/android/java/dev/horizon/android/HorizonDocumentsProvider.java',
+         ROOT / 'packaging/android/java/dev/horizon/android/HorizonStorage.java'])
     classes = sorted((out / 'classes').rglob('*.class'))
     run([jdk / 'bin/java.exe', '-cp', bt / 'lib/d8.jar', 'com.android.tools.r8.D8', '--min-api', '28',
          '--lib', sdk / 'platforms/android-35/android.jar', '--output', out / 'dex', *classes])

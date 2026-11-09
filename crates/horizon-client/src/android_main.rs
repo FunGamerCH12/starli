@@ -104,7 +104,8 @@ pub(crate) fn touch_input(touch: bool) {
 }
 pub(crate) fn save_input_mode() {
     APP.with(|app| {
-        if let Some(home) = app.borrow().as_ref().and_then(|a| a.internal_data_path()) {
+        let _ = app;
+        if let Some(home) = HOME.get().cloned() {
             let mut config = catalog::Config::load(&home);
             let mode = horizon_client::android_runtime::input_mode();
             if config.input_host != mode {
@@ -116,6 +117,9 @@ pub(crate) fn save_input_mode() {
         }
     });
 }
+/// Directory holding all app data: `/storage/emulated/0/MC` when shared
+/// storage access is granted, otherwise the app-private directory.
+static HOME: std::sync::OnceLock<std::path::PathBuf> = std::sync::OnceLock::new();
 pub(crate) const PUBLIC_BUILD: bool = match option_env!("HORIZON_ANDROID_PUBLIC") {
     Some(value) => value.len() == 1 && value.as_bytes()[0] == b'1',
     None => false,
@@ -208,19 +212,24 @@ fn android_main(app: AndroidApp) {
         app.enable_motion_axis(axis);
     }
     init_logging();
-    let Some(home) = app.internal_data_path() else {
+    let Some(internal_home) = app.internal_data_path() else {
         log::error!("Android supplied no application data directory");
         return;
     };
-    backend::initialize(home.clone());
-    if let Err(error) = diagnostics::initialize(&home, serde_json::json!({})) {
-        log::error!("Cannot initialize local diagnostics: {error}");
-    }
     if let Ok(vm) = unsafe { jni::JavaVM::from_raw(app.vm_as_ptr().cast()) } {
         secure_store::initialize(vm);
     }
     let engine_data = app.asset_manager().open(c"engine-data.zip");
     APP.with(|slot| *slot.borrow_mut() = Some(app));
+    // Prefer /storage/emulated/0/MC (asks for all-files access on first run);
+    // fall back to the app-private directory if the user declines.
+    let home = platform::shared_data_dir().unwrap_or(internal_home);
+    log::info!("Using data directory {}", home.display());
+    let _ = HOME.set(home.clone());
+    backend::initialize(home.clone());
+    if let Err(error) = diagnostics::initialize(&home, serde_json::json!({})) {
+        log::error!("Cannot initialize local diagnostics: {error}");
+    }
     let Some(cache) = platform::cache_dir() else {
         log::error!("Android supplied no application cache directory");
         return;

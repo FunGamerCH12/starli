@@ -278,6 +278,23 @@ pub fn set_orientation(orientation: crate::catalog::Orientation) {
     });
 }
 
+/// `/storage/emulated/0/MC`, after asking the user for storage access if
+/// needed. Blocks the native thread (never the UI thread) until the user has
+/// answered. `None` means access was declined or the folder is unusable.
+pub fn shared_data_dir() -> Option<std::path::PathBuf> {
+    with_context(|env, activity| {
+        let value = env
+            .call_method(activity, "awaitStorage", "()Ljava/lang/String;", &[])?
+            .l()?;
+        if value.is_null() {
+            return Ok(None);
+        }
+        let text: String = env.get_string(&jni::objects::JString::from(value))?.into();
+        Ok(Some(std::path::PathBuf::from(text)))
+    })
+    .flatten()
+}
+
 pub fn cache_dir() -> Option<std::path::PathBuf> {
     with_context(|env, activity| {
         let file = env

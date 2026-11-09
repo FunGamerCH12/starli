@@ -1759,7 +1759,20 @@ fn out_path(overlay: &Overlay<'_>, rel: &str) -> PathBuf {
 }
 #[cfg(unix)]
 fn link(target: &Path, at: &Path) -> std::io::Result<()> {
-    std::os::unix::fs::symlink(target, at)
+    // Android shared storage (/storage/emulated/0) has no symlinks: copy instead.
+    std::os::unix::fs::symlink(target, at).or_else(|_| copy_tree(target, at))
+}
+#[cfg(unix)]
+fn copy_tree(target: &Path, at: &Path) -> std::io::Result<()> {
+    if target.is_dir() {
+        fs::create_dir_all(at)?;
+        for entry in fs::read_dir(target)?.flatten() {
+            copy_tree(&entry.path(), &at.join(entry.file_name()))?;
+        }
+        Ok(())
+    } else {
+        fs::copy(target, at).map(|_| ())
+    }
 }
 #[cfg(not(unix))]
 fn link(target: &Path, at: &Path) -> std::io::Result<()> {
