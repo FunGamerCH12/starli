@@ -104,7 +104,7 @@ fn flood(
     found
 }
 
-impl Game {
+impl Game<'_> {
     fn qol_name(&self, p: [i32; 3]) -> &str {
         let state = self.world.block(p[0], p[1], p[2]);
         &self.res.facts().get(state).name
